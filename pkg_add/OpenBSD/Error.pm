@@ -88,7 +88,7 @@ __PACKAGE__->reset;
 package OpenBSD::Error;
 require Exporter;
 our @ISA=qw(Exporter);
-our @EXPORT=qw(try throw catch catchall rethrow);
+our @EXPORT=qw(try throw catch rethrow);
 
 our ($FileName, $Line, $FullMessage);
 
@@ -132,11 +132,6 @@ sub rethrow
 sub catch(&)
 {
 		bless $_[0], "OpenBSD::Error::catch";
-}
-
-sub catchall(&)
-{
-	bless $_[0], "OpenBSD::Error::catch";
 }
 
 sub rmtree

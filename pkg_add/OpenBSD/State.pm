@@ -291,7 +291,7 @@ sub do_options
 
 	try {
 		&$sub;
-	} catchall {
+	} catch {
 		$state->usage("#1", $_);
 	};
 }

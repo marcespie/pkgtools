@@ -704,7 +704,7 @@ sub delete_old_packages
 		require OpenBSD::Delete;
 		try {
 			OpenBSD::Delete::delete_handle($o, $state);
-		} catchall {
+		} catch {
 			$state->errsay($_);
 			$state->fatal(partial_install(
 			    "Deinstallation of $oldname failed",
@@ -787,7 +787,7 @@ sub really_add
 
 		try {
 			OpenBSD::Add::perform_extraction($handle, $state);
-		} catchall {
+		} catch {
 			unless ($state->{interrupted}) {
 				$state->errsay($_);
 				$errors++;
@@ -816,7 +816,7 @@ sub really_add
 
 		try {
 			OpenBSD::Add::perform_installation($handle, $state);
-		} catchall {
+		} catch {
 			unless ($state->{interrupted}) {
 				$state->errsay($_);
 				$errors++;
