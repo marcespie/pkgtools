@@ -1442,18 +1442,10 @@ sub create_package
 
 	$state->say("Creating gzip'd tar ball in '#1'", $wname)
 	    if $state->opt('v');
-	my $h = sub {
+	my $n = OpenBSD::SigHandler->new->intercept(@INTetc,
+	    sub {
 		unlink $wname;
-		my $caught = shift;
-		$SIG{$caught} = 'DEFAULT';
-		kill $caught, $$;
-	};
-
-	local $SIG{'INT'} = $h;
-	local $SIG{'QUIT'} = $h;
-	local $SIG{'HUP'} = $h;
-	local $SIG{'KILL'} = $h;
-	local $SIG{'TERM'} = $h;
+	    });
 	$state->{archive} = $state->create_archive($wname, $plist->infodir);
 	$state->set_status("archiving");
 	my $p = $state->progress->new_sizer($plist, $state);

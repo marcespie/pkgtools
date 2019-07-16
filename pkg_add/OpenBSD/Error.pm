@@ -32,14 +32,59 @@ sub cache(*&)
 	*{$callpkg."::$sym"} = $actual;
 }
 
+package OpenBSD::SigHandler;
+
+# instead of "local" sighandlers, let's do objects that revert
+# to their former state afterwards
+sub new
+{
+	my $class = shift;
+	# keep previous state
+	bless {}, $class;
+}
+
+
+sub DESTROY
+{
+	my $self = shift;
+	while (my ($s, $v) = each %$self) {
+		$SIG{$s} = $v;
+	}
+}
+
+sub set
+{
+	my $self = shift;
+	my $v = pop;
+	for my $s (@_) {
+		$self->{$s} = $SIG{$s};
+		$SIG{$s} = $v;
+	}
+	return $self;
+}
+
+sub intercept
+{
+	my $self = shift;
+	my $v = pop;
+	return $self->set(@_, 
+	    sub { 
+		my $sig = shift; 
+		&$v($sig); 
+		$SIG{$sig} = $self->{$sig}; 
+		kill -$sig, $$; 
+	    });
+}
+
 package OpenBSD::Error;
 require Exporter;
 our @ISA=qw(Exporter);
-our @EXPORT=qw(try throw catch rethrow);
+our @EXPORT=qw(try throw catch rethrow INTetc);
 
 our ($FileName, $Line, $FullMessage);
 
-use Carp;
+our @INTetc = (qw(INT QUIT HUP KILL TERM));
+
 sub dienow
 {
 	my ($error, $handler) = @_;
@@ -127,22 +172,16 @@ sub atexit
 	$cleanup->{$code} = $code;
 }
 
-my $handler = sub {
-	my $sig = shift;
-	__PACKAGE__->cleanup($sig);
-	# after cleanup, just propagate the signal
-	$SIG{$sig} = 'DEFAULT';
-	kill $sig, $$;
-};
-
-sub reset
-{
-	for my $sig (qw(INT QUIT HUP KILL TERM)) {
-		$SIG{$sig} = $handler;
-	}
+for my $sig (@INTetc) {
+	$SIG{$sig} = 
+	    sub {
+		my $sig = shift;
+		__PACKAGE__->cleanup($sig);
+		# after cleanup, just propagate the signal
+		$SIG{$sig} = 'DEFAULT';
+		kill $sig, $$;
+	    };
 }
-
-__PACKAGE__->reset;
 
 package OpenBSD::Error::catch;
 sub exec

@@ -755,7 +755,8 @@ sub really_add
 	}
 	$state->{replacing} = $replacing;
 
-	my $handler = sub {
+	my $n = OpenBSD::SigHandler->new->set(@INTetc,
+	    sub {
 		$state->{received} = shift;
 		$state->errsay("Interrupted");
 		if ($state->{hardkill}) {
@@ -763,12 +764,7 @@ sub really_add
 			return;
 		}
 		$state->{interrupted}++;
-	};
-	local $SIG{'INT'} = $handler;
-	local $SIG{'QUIT'} = $handler;
-	local $SIG{'HUP'} = $handler;
-	local $SIG{'KILL'} = $handler;
-	local $SIG{'TERM'} = $handler;
+	    });
 
 	$state->{hardkill} = $state->{delete_first};
 

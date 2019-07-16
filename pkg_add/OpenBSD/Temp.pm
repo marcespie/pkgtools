@@ -48,15 +48,10 @@ OpenBSD::Error->atexit(
 sub dir
 {
 	my $caught;
-	my $h = sub { $caught = shift; };
 	my $dir;
-
 	{
-	    local $SIG{'INT'} = $h;
-	    local $SIG{'QUIT'} = $h;
-	    local $SIG{'HUP'} = $h;
-	    local $SIG{'KILL'} = $h;
-	    local $SIG{'TERM'} = $h;
+	    my $n = OpenBSD::SigHandler->new->set(@INTetc, 
+		sub { $caught = shift; });
 	    $dir = permanent_dir($tempbase, "pkginfo");
 	    if (defined $dir) {
 		    $dirs->{$dir} = $$;
@@ -76,15 +71,11 @@ sub fh_file
 {
 	my ($stem, $cleanup) = @_;
 	my $caught;
-	my $h = sub { $caught = shift; };
 	my ($fh, $file);
 
 	{
-	    local $SIG{'INT'} = $h;
-	    local $SIG{'QUIT'} = $h;
-	    local $SIG{'HUP'} = $h;
-	    local $SIG{'KILL'} = $h;
-	    local $SIG{'TERM'} = $h;
+	    my $n = OpenBSD::SigHandler->new->set(@INTetc, 
+		sub { $caught = shift; });
 	    ($fh, $file) = permanent_file($tempbase, $stem);
 	    if (defined $file) {
 		    &$cleanup($file);

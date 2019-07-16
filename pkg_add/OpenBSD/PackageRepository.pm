@@ -640,24 +640,16 @@ sub pkg_copy
 		$self->{state}->fatal(OpenBSD::Temp->last_error);
 	chmod((0666 & ~umask), $filename);
 	$object->{tempname} = $filename;
-	my $handler = sub {
-		my ($sig) = @_;
-		unlink $filename;
-		close($in);
-		$SIG{$sig} = 'DEFAULT';
-		kill $sig, $$;
-	};
 
 	my $nonempty = 0;
 	my $error = 0;
 	{
 
-	local $SIG{'PIPE'} =  $handler;
-	local $SIG{'INT'} =  $handler;
-	local $SIG{'HUP'} =  $handler;
-	local $SIG{'QUIT'} =  $handler;
-	local $SIG{'KILL'} =  $handler;
-	local $SIG{'TERM'} =  $handler;
+	my $n = OpenBSD::SigHandler->new->intercept(@INTetc, 'PIPE',
+	    sub {
+		unlink $filename;
+		close($in);
+	    });
 
 	my ($buffer, $n);
 	# copy stuff over

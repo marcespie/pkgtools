@@ -73,12 +73,8 @@ sub do_the_main_work
 		return;
 	}
 
-	my $handler = sub { $state->fatal("Caught SIG#1", shift); };
-	local $SIG{'INT'} = $handler;
-	local $SIG{'QUIT'} = $handler;
-	local $SIG{'HUP'} = $handler;
-	local $SIG{'KILL'} = $handler;
-	local $SIG{'TERM'} = $handler;
+	my $n = OpenBSD::SigHandler->new->set(@INTetc,
+	    sub { $state->fatal("Caught SIG#1", shift); });
 
 	if ($state->defines('debug')) {
 		$self->main($state);
