@@ -34,7 +34,7 @@ my $files = {};
 
 my ($lastname, $lasterror, $lasttype);
 
-OpenBSD::Handler->register(
+OpenBSD::Error->atexit(
     sub {
 	while (my ($name, $pid) = each %$files) {
 		unlink($name) if $pid == $$;

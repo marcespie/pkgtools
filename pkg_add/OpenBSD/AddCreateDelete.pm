@@ -197,7 +197,7 @@ sub try_and_run_command
 			$self->run_command($state);
 		} catch {
 			$state->errsay("#1: #2", $state->{cmd}, $_);
-			OpenBSD::Handler->reset;
+			OpenBSD::Error->reset;
 			if ($_ =~ m/^Caught SIG(\w+)/o) {
 				kill $1, $$;
 			}

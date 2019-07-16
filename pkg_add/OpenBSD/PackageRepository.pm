@@ -82,7 +82,7 @@ sub unique
 	return $o;
 }
 
-OpenBSD::Handler->register(
+OpenBSD::Error->atexit(
     sub {
 	for my $repo (values %$cache) {
 		$repo->cleanup;

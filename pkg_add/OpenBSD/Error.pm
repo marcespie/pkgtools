@@ -32,59 +32,6 @@ sub cache(*&)
 	*{$callpkg."::$sym"} = $actual;
 }
 
-# a bunch of other modules create persistent state that must be cleaned up
-# on exit (temporary files, network connections to abort properly...)
-# END blocks would do that (but see below...) but sig handling bypasses that,
-# so we MUST install SIG handlers.
-
-# note that END will be run for *each* process, so beware!
-# (temp files are registered per pid, for instance, so they only
-# get cleaned when the proper pid is used)
-package OpenBSD::Handler;
-
-# hash of code to run on ANY exit
-my $cleanup = {};
-
-sub cleanup
-{
-	my ($class, $sig) = @_;
-	# XXX note that order of cleanup is "unpredictable"
-	for my $v (values %$cleanup) {
-		&$v($sig);
-	}
-}
-
-END {
-	# XXX localize $? so that cleanup doesn't fuck up our exit code
-	local $?;
-	cleanup();
-}
-
-# register each code block "by name" so that we can re-register each
-# block several times
-sub register
-{
-	my ($class, $code) = @_;
-	$cleanup->{$code} = $code;
-}
-
-my $handler = sub {
-	my $sig = shift;
-	__PACKAGE__->cleanup($sig);
-	# after cleanup, just propagate the signal
-	$SIG{$sig} = 'DEFAULT';
-	kill $sig, $$;
-};
-
-sub reset
-{
-	for my $sig (qw(INT QUIT HUP KILL TERM)) {
-		$SIG{$sig} = $handler;
-	}
-}
-
-__PACKAGE__->reset;
-
 package OpenBSD::Error;
 require Exporter;
 our @ISA=qw(Exporter);
@@ -145,6 +92,57 @@ sub rmtree
 
 	File::Path::rmtree(@_);
 }
+
+# a bunch of other modules create persistent state that must be cleaned up
+# on exit (temporary files, network connections to abort properly...)
+# END blocks would do that (but see below...) but sig handling bypasses that,
+# so we MUST install SIG handlers.
+
+# note that END will be run for *each* process, so beware!
+# (temp files are registered per pid, for instance, so they only
+# get cleaned when the proper pid is used)
+# hash of code to run on ANY exit
+my $cleanup = {};
+
+sub cleanup
+{
+	my ($class, $sig) = @_;
+	# XXX note that order of cleanup is "unpredictable"
+	for my $v (values %$cleanup) {
+		&$v($sig);
+	}
+}
+
+END {
+	# XXX localize $? so that cleanup doesn't fuck up our exit code
+	local $?;
+	cleanup();
+}
+
+# register each code block "by name" so that we can re-register each
+# block several times
+sub atexit
+{
+	my ($class, $code) = @_;
+	$cleanup->{$code} = $code;
+}
+
+my $handler = sub {
+	my $sig = shift;
+	__PACKAGE__->cleanup($sig);
+	# after cleanup, just propagate the signal
+	$SIG{$sig} = 'DEFAULT';
+	kill $sig, $$;
+};
+
+sub reset
+{
+	for my $sig (qw(INT QUIT HUP KILL TERM)) {
+		$SIG{$sig} = $handler;
+	}
+}
+
+__PACKAGE__->reset;
 
 package OpenBSD::Error::catch;
 sub exec
